@@ -59,11 +59,10 @@ module Kernel
   # @return [Object, FalseClase] the results of the first call to +on+ that returned 
   #   anything truthy, or of its block
   def switch object = nil, &block
-    block = block.dup # enable cross thread sharing of blocks
-
     AnaphoricCase.__nest += 1
     
     raise ArgumentError, "switch requires a block" unless block_given? 
+    block = block.dup # enable cross thread sharing of blocks
     
     class << self
       def on result = true, &block

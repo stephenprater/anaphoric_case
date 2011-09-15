@@ -163,6 +163,10 @@ describe "it is an anaphoric case" do
       res.should == "pizza"
     end
 
+    it "is an error to call it without a block" do
+      lambda { switch }.should raise_error ArgumentError, "switch requires a block"
+    end
+
     it "can't call on from outside of switch block" do
       lambda { on }.should raise_error NameError
 
