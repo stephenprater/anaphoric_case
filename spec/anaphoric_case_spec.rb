@@ -236,6 +236,27 @@ describe "it is an anaphoric case" do
       res.should == "pizza"
     end
 
+    it "can be called in the context of BasicObject if you prefix it" do
+      @basic = BasicObject.new
+      res = nil
+      test = @test
+      @basic.instance_eval do
+        res = ::Kernel.switch do
+          on (test.flavors :lime) { |it| nothing }
+          on (test.flavors :snoopy)
+        end
+      end
+      res.should == "pizza"
+      
+      lambda do
+        @basic.instance_eval do
+          res = switch do
+            on 1
+          end
+        end
+      end.should raise_error NoMethodError
+    end
+
     it "can act like a regular case statement if called with a parameter" do
       test = lambda do |test_obj|
         res = switch test_obj do

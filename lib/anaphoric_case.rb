@@ -51,6 +51,9 @@ module Kernel
   # the cheapest thing.
   # @param [Object] object - 
   #   parameter of all +on+ calls will be compared to this object using +===+
+  #   @note if you plan on passing an object which could be nil to the method,
+  #     you should call {Object#nil?} on it as your first +on+ condition as otherwise
+  #     it will always match the first one.
   # @yield A block during which the +on+ method will be available - the block is required.
   #   The block is always executed in the context of the receiver of the +switch+ method
   #   so most of the time this is +self+ but if you call +switch+ with an explicit receiver
