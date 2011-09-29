@@ -4,7 +4,7 @@ require 'anaphoric_case'
 require 'timeout'
 
 describe "it is an anaphoric case" do
- 
+
   before :all do
     class Fixture
       def initialize
@@ -122,7 +122,7 @@ describe "it is an anaphoric case" do
         on { 5 }
       end
       res.should == 5
-     
+      
       res = switch do
         on 1
         on { 1 }
@@ -146,7 +146,7 @@ describe "it is an anaphoric case" do
           on(count.length == 5)  { :five }
         end
       end
-     
+      
       @test.instance_eval(&test_test).should == :five
       @test.count.slice!(0,3)
       @test.instance_eval(&test_test).should == [4,5]
@@ -186,7 +186,7 @@ describe "it is an anaphoric case" do
       class Boosh
         include Thingy
       end
-     
+
       farts = nil
       Boosh.new.instance_eval do
         farts = thing_method(5)
@@ -209,7 +209,7 @@ describe "it is an anaphoric case" do
         end
         flag = false
       end
-     
+
       Timeout.timeout(1) { loop until flag == true }
 
       # should transform the uncaught :throw error into a NameError
@@ -274,7 +274,7 @@ describe "it is an anaphoric case" do
         end
       end
       res.should == "pizza"
-     
+      
       lambda do
         @basic.instance_eval do
           res = switch do
@@ -292,7 +292,7 @@ describe "it is an anaphoric case" do
           on
         end
       end
-      
+       
       test.call("That's a nice mustache sheriff.").should == "'That's a nice mustache sheriff,' I said."
       test.call("That's a nice mustache baron.").should == "'That's a nice mustache baron,' said the queen."
       test.call("I hate mustache's").should == "I hate mustache's"
@@ -328,7 +328,7 @@ describe "it is an anaphoric case" do
           on { "zomg, not this!" }
         end
       end
-    
+
       try_it = proc do
         mixed.call.should == 1
         @test.count.clear
@@ -339,14 +339,14 @@ describe "it is an anaphoric case" do
         @test.count << nil
         mixed.call.should == "zomg, not this!"
       end
-    
+
       try_it.call
 
       @test.count.replace [1,2,3,4,5] #reset it
-     
+
       # you can acheieve the same functionality by calling it in context
-      # without a parameter, if slightly less cleanly
-    
+      # without a parameter
+
       mixed = lambda do
         @test.count.switch do
           on(empty?) { self }
@@ -376,7 +376,7 @@ describe "it is an anaphoric case" do
       end
 
       res.should == 'okay!'
-     
+
       res = switch @test.compliment do
         # this will match
         on /mustache/ do |it|
@@ -386,7 +386,7 @@ describe "it is an anaphoric case" do
           end
         end
       end
-     
+
       #so the result of the entire block is the last truthy thing
       res.should == /poor/
 
@@ -402,9 +402,9 @@ describe "it is an anaphoric case" do
       end
       res.should == 'yes it is'
 
-     
+      
       # can switch eval contexts each time
-     
+      
       res = switch "this" do
         on /this/ do
           switch "that" do
@@ -464,7 +464,7 @@ describe "it is an anaphoric case" do
         on(/Famine/) { |it| "#{it} made you hungry."}
         on(/War/) { |it| "#{it} was loud." }
       end
-   
+    
       res1 = switch "War in Iraq", &thing
       res1.should == "War in Iraq was loud."
 
@@ -489,7 +489,7 @@ describe "it is an anaphoric case" do
           break if t.empty?
         end
       end
-     
+      
       res2.should == "Famine in Ireland made you hungry."
       res3.should == "Death at a Funeral killed you."
       res4.should == "Pestilence at the presschool made you cough."
@@ -497,7 +497,7 @@ describe "it is an anaphoric case" do
 
     it "threads?" do
       res1, res2, res3 = nil, nil, nil
-       
+
       t1 = Thread.new do
         res1 = switch do
           on(@test.flavors :lime)
@@ -524,7 +524,7 @@ describe "it is an anaphoric case" do
           on true
         end
       end
-     
+
       Timeout.timeout 1 do
         loop do
           t = [t1.status, t2.status, t3.status]
