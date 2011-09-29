@@ -6,6 +6,7 @@ module AnaphoricCase
     # @private
     attr_accessor :__nest 
 
+    # @private
     def switch_stack
       Thread.current[:__switch_stack] ||= []
     end
@@ -27,7 +28,10 @@ module Kernel
   #   a different value, which will become the return value of #aif
   def aif result = true, &block
     if result
-      unless block.nil? then result = block.call(*[result].slice(0,block.arity)) end
+      unless block.nil?
+        new_result = block.call(*[result].slice(0,block.arity))
+        return new_result
+      end
       return result
     end
     false
@@ -72,11 +76,18 @@ module Kernel
         # the current switch block in this thread
         it = AnaphoricCase.switch_stack.last.instance_eval { @it }
 
+        # when the subsumption operator is used in these classes
+        # it basically means "equal" so we ignore it these cases
+        if (it and [Kernel, Fixnum, String,
+            Bignum, Float, Symbol].include? result.method(:===).owner)
+          result_simple = true
+        end
+
         begin
           if it and (result === it or result == true)
             result = Kernel.aif it, &block
             throw :result, result if result
-          elsif result and not it
+          elsif result and (not it or result_simple)
             result = Kernel.aif result, &block
             throw :result, result if result
           end

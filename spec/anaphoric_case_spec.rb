@@ -4,14 +4,14 @@ require 'anaphoric_case'
 require 'timeout'
 
 describe "it is an anaphoric case" do
-  
+ 
   before :all do
-    class Harness
-      def initialize 
+    class Fixture
+      def initialize
         @array = [1,2,3,4,5]
         @hash = { :bacon => "cheese", :pie => "sky", :snoopy => "pizza" }
         @string = "That is quite a mustache you've got there, sheriff."
-        @snitch = 0 
+        @snitch = 0
       end
 
       def count
@@ -19,7 +19,7 @@ describe "it is an anaphoric case" do
       end
 
       def flavors thing
-        @hash[thing] 
+        @hash[thing]
       end
 
       def compliment
@@ -47,7 +47,7 @@ describe "it is an anaphoric case" do
   end
 
   before :each do
-    @test = Harness.new
+    @test = Fixture.new
   end
 
   profile :all do
@@ -109,7 +109,7 @@ describe "it is an anaphoric case" do
 
     it "can execute anaphoric blocks using on" do
       res = switch do
-        on(false) { |it| it.blah_blah } #this would raise an error if it was ever called 
+        on(false) { |it| it.blah_blah } #this would raise an error if it was ever called
         on(1) { |it| it + 1 }
       end
       res.should == 2
@@ -119,13 +119,13 @@ describe "it is an anaphoric case" do
       res = switch do
         on false
         on nil
-        on { 5 } 
+        on { 5 }
       end
       res.should == 5
-      
+     
       res = switch do
         on 1
-        on { 1 } 
+        on { 1 }
       end
       res.should == 1
     end
@@ -146,12 +146,12 @@ describe "it is an anaphoric case" do
           on(count.length == 5)  { :five }
         end
       end
-      
+     
       @test.instance_eval(&test_test).should == :five
       @test.count.slice!(0,3)
       @test.instance_eval(&test_test).should == [4,5]
       @test.count.concat [1,1,1,1]
-      @test.instance_eval(&test_test).should == [4,5,1,1,1,1] 
+      @test.instance_eval(&test_test).should == [4,5,1,1,1,1]
     end
 
     it "can look in an object if it's not within it" do
@@ -167,25 +167,52 @@ describe "it is an anaphoric case" do
       lambda { switch }.should raise_error ArgumentError, "switch requires a block"
     end
 
+    it "executes in a closure" do
+      blah_blah = 57
+      switch do
+        on(blah_blah < 56) { raise "no!!" }
+        on(blah_blah == 57) { blah_blah = "ok"}
+      end
+      blah_blah.should == "ok"
+
+      module Thingy
+        def thing_method arg
+          arg = switch do
+            on (arg == 5) { arg = "poop" }
+          end
+        end
+      end
+
+      class Boosh
+        include Thingy
+      end
+     
+      farts = nil
+      Boosh.new.instance_eval do
+        farts = thing_method(5)
+      end
+      farts.should == "poop"
+    end
+
     it "can't call on from outside of switch block" do
       lambda { on }.should raise_error NameError
 
       # ensure the on method is defined the next time
       # we call it
-      flag = false 
+      flag = false
       t1 = Thread.new do
         switch do
           on false
-          flag = true 
+          flag = true
           sleep 0.1
           on true
         end
         flag = false
       end
-      
+     
       Timeout.timeout(1) { loop until flag == true }
 
-      # should transform the uncaught :throw error into a NameError 
+      # should transform the uncaught :throw error into a NameError
       (self.respond_to? :on).should be true #it's defined in the thread
       lambda { on }.should raise_error NameError, "on without associated switch"
 
@@ -195,11 +222,11 @@ describe "it is an anaphoric case" do
     end
 
     it "can raise past the (internal) throw" do
-      lambda do 
+      lambda do
         switch do
-          on { |a,b,c| raise ArgumentError } 
+          on { |a,b,c| raise ArgumentError }
         end
-      end.should raise_error ArgumentError 
+      end.should raise_error ArgumentError
     end
 
     it "can nest safely" do
@@ -225,11 +252,11 @@ describe "it is an anaphoric case" do
       res.should == 5
     end
 
-    it "can be called with explicit receiver" do 
+    it "can be called with explicit receiver" do
       # this makes it act a little bit like "tap"
       res = @test.switch do
         on (flavors :lime) { |it| it.blah } #would raise
-        on (flavors :snoopy) 
+        on (flavors :snoopy)
         on { raise 'terribly awry'}
       end
 
@@ -247,7 +274,7 @@ describe "it is an anaphoric case" do
         end
       end
       res.should == "pizza"
-      
+     
       lambda do
         @basic.instance_eval do
           res = switch do
@@ -265,7 +292,7 @@ describe "it is an anaphoric case" do
           on
         end
       end
-       
+      
       test.call("That's a nice mustache sheriff.").should == "'That's a nice mustache sheriff,' I said."
       test.call("That's a nice mustache baron.").should == "'That's a nice mustache baron,' said the queen."
       test.call("I hate mustache's").should == "I hate mustache's"
@@ -278,7 +305,7 @@ describe "it is an anaphoric case" do
           # its is @test.compliment
           switch it do
             #it is STILL @test.compliment
-            on(/mustache/) { |thing| false } 
+            on(/mustache/) { |thing| false }
             #return false to fall through
           end
         end
@@ -286,29 +313,70 @@ describe "it is an anaphoric case" do
         # which means this should NOT match
         on(/baron/) { |it| it.blah }
         # but this should.
-        on(/sheriff/) { |it| it + "okay" } 
+        on(/sheriff/) { |it| it + "okay" }
       end
       res.should == remember + "okay"
+    end
+
+    it "can operate first-truthy with a parameter" do
+      amazing_proc = proc { |t| true if t.first == false }
+      mixed = lambda do
+        switch @test.count do |arr|
+          on arr.empty?   { |it| it } # equal to arr
+          on arr.first    { |it| it } # equal to arr.first
+          on(amazing_proc){ |it| it } # equal to arr
+          on { "zomg, not this!" }
+        end
+      end
+    
+      try_it = proc do
+        mixed.call.should == 1
+        @test.count.clear
+        mixed.call.should == []
+        @test.count << false
+        mixed.call.should == [false]
+        @test.count.clear
+        @test.count << nil
+        mixed.call.should == "zomg, not this!"
+      end
+    
+      try_it.call
+
+      @test.count.replace [1,2,3,4,5] #reset it
+     
+      # you can acheieve the same functionality by calling it in context
+      # without a parameter, if slightly less cleanly
+    
+      mixed = lambda do
+        @test.count.switch do
+          on(empty?) { self }
+          on(first)  { |it| it }
+          on(amazing_proc.call(self)) { self }
+          on { "zomg, not this!" }
+        end
+      end
+
+      try_it.call
     end
 
     it "can be called both with and without a parameter" do
       res = switch do
         # there is no default __it__
-        on @test.compliment =~ /sheriff/ do |it| 
+        on @test.compliment =~ /sheriff/ do |it|
           # it here is "43" the place where sheriff occures
           switch it do |ot|
             on(ot > 43)  { raise 'ohnoes' }
-            on(ot < 43)  { raise 'ohnoes again'} 
+            on(ot < 43)  { raise 'ohnoes again'}
             # this will signal completion
             on(ot == 43) { 'okay!' }
           end
         end
-        # so this will not run 
+        # so this will not run
         on(@test.compliment =~ /baron/) { |it| it.blah }
       end
 
       res.should == 'okay!'
-      
+     
       res = switch @test.compliment do
         # this will match
         on /mustache/ do |it|
@@ -318,7 +386,7 @@ describe "it is an anaphoric case" do
           end
         end
       end
-      
+     
       #so the result of the entire block is the last truthy thing
       res.should == /poor/
 
@@ -334,16 +402,16 @@ describe "it is an anaphoric case" do
       end
       res.should == 'yes it is'
 
-      
+     
       # can switch eval contexts each time
-      
+     
       res = switch "this" do
         on /this/ do
           switch "that" do
             on /that/ do
               switch "thing" do
                 on /thing/ do
-                  "foogle bear" 
+                  "foogle bear"
                 end
               end
             end
@@ -360,7 +428,7 @@ describe "it is an anaphoric case" do
       t1 = Thread.new do
         res1 = switch "this" do
           on /this/ do
-            switch "that" do 
+            switch "that" do
               on(/that/) { "that" }
             end
           end
@@ -396,7 +464,7 @@ describe "it is an anaphoric case" do
         on(/Famine/) { |it| "#{it} made you hungry."}
         on(/War/) { |it| "#{it} was loud." }
       end
-    
+   
       res1 = switch "War in Iraq", &thing
       res1.should == "War in Iraq was loud."
 
@@ -421,7 +489,7 @@ describe "it is an anaphoric case" do
           break if t.empty?
         end
       end
-      
+     
       res2.should == "Famine in Ireland made you hungry."
       res3.should == "Death at a Funeral killed you."
       res4.should == "Pestilence at the presschool made you cough."
@@ -429,7 +497,7 @@ describe "it is an anaphoric case" do
 
     it "threads?" do
       res1, res2, res3 = nil, nil, nil
-        
+       
       t1 = Thread.new do
         res1 = switch do
           on(@test.flavors :lime)
@@ -452,11 +520,11 @@ describe "it is an anaphoric case" do
         res3 = switch do
           on false
           on nil
-          sleep 0.1 
+          sleep 0.1
           on true
         end
       end
-      
+     
       Timeout.timeout 1 do
         loop do
           t = [t1.status, t2.status, t3.status]
@@ -466,14 +534,8 @@ describe "it is an anaphoric case" do
       end
 
       res1.should == "pizza"
-      res2.should == [1,2,3,4,5] 
+      res2.should == [1,2,3,4,5]
       res3.should == true
     end
   end
 end
-        
-        
-      
-    
-
-    
