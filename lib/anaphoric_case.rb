@@ -1,5 +1,3 @@
-require 'pry'
-
 module AnaphoricCase
   @__nest = 0
   class << self
